@@ -36,7 +36,25 @@ Optimizado para **usuarios administrativos y cobradores**, con un panel intuitiv
 ## 📦 Instalación y uso
 
 1. Clonar el repositorio:
-   ```bash
-   git clone https://github.com/usuario/cg-sistema.git
-   cd cg-sistema
+
+   git clone https://github.com/usuario/cg-sistema.git](https://github.com/walner-prog/sis-credito-carlos.git)
+   cd sis-credito-carlos
+   composer install
+   npm install && npm run build
+
+   cp .env.example .env
+
+# Edita el archivo .env con tus credenciales
+DB_CONNECTION=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_DATABASE=cg_sistema
+DB_USERNAME=root
+DB_PASSWORD=123456
+
+php artisan key:generate
+php artisan migrate --seed
+php artisan serve
+
+
 der the [MIT license](https://opensource.org/licenses/MIT).
