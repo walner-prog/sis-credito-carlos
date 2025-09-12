@@ -37,7 +37,7 @@ Optimizado para **usuarios administrativos y cobradores**, con un panel intuitiv
 
 1. Clonar el repositorio:
 
-   git clone https://github.com/usuario/cg-sistema.git](https://github.com/walner-prog/sis-credito-carlos.git)
+   git clone https://github.com/walner-prog/sis-credito-carlos.git
    cd sis-credito-carlos
    composer install
    npm install && npm run build
