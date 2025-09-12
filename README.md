@@ -46,12 +46,12 @@ Optimizado para **usuarios administrativos y cobradores**, con un panel intuitiv
    cp .env.example .env
 
 # Edita el archivo .env con tus credenciales
-DB_CONNECTION=mysql
-DB_HOST=127.0.0.1
-DB_PORT=3306
-DB_DATABASE=cg_sistema
-DB_USERNAME=root
-DB_PASSWORD=123456
+-DB_CONNECTION=mysql
+- DB_HOST=127.0.0.1
+ -DB_PORT=3306
+ -DB_DATABASE=ultracredit
+-DB_USERNAME=root
+ -DB_PASSWORD=
 
 php artisan key:generate
 php artisan migrate --seed
