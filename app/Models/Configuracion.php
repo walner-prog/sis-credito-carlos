@@ -24,6 +24,7 @@ class Configuracion extends Model
         'unidad_plazo_default',
         'dias_gracia_primera_cuota',
         'dias_no_cobrables',
+        'logo_delete_url',
     ];
 
     protected $casts = [

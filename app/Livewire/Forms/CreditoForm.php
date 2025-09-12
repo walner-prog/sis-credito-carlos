@@ -51,7 +51,7 @@ class CreditoForm extends Form
                 $this->clientes = collect(); // Colección vacía si el usuario no tiene cartera
             }
         }
-        
+
         $this->fecha_inicio = Carbon::today()->toDateString();
 
         if (!$this->credito) {
@@ -84,52 +84,49 @@ class CreditoForm extends Form
     // ---------------------------------------------
     // Calcular fecha de cuota considerando días de gracia y días no cobrables
     // ---------------------------------------------
-    protected function calcularFechaCuota(int $indiceCuota, int $factor): Carbon
-    {
-        $config = $this->getConfiguracionGlobal();
-        $fecha = Carbon::parse($this->fecha_inicio);
+   protected function calcularFechaCuota(int $indiceCuota, int $factor): Carbon
+{
+    $config = $this->getConfiguracionGlobal();
+    $fecha = Carbon::parse($this->fecha_inicio);
 
-        // 1️⃣ Aplicar días de gracia iniciales
-        if ($config) {
-            $fecha->addDays($config->dias_gracia_primera_cuota ?? 0);
-        }
+    // 1️⃣ Aplicar días de gracia inicial
+    $diasGracia = $config->dias_gracia_primera_cuota ?? 0;
+    $fecha->addDays($diasGracia);
 
-        // Mapear días en español a inglés
-        $mapDias = [
-            'lunes' => 'Monday',
-            'martes' => 'Tuesday',
-            'miércoles' => 'Wednesday',
-            'jueves' => 'Thursday',
-            'viernes' => 'Friday',
-            'sábado' => 'Saturday',
-            'domingo' => 'Sunday',
-        ];
+    // 2️⃣ Obtener días no cobrables mapeados
+    $mapDias = [
+        'lunes' => 'Monday',
+        'martes' => 'Tuesday',
+        'miércoles' => 'Wednesday',
+        'jueves' => 'Thursday',
+        'viernes' => 'Friday',
+        'sábado' => 'Saturday',
+        'domingo' => 'Sunday',
+    ];
 
-        // Obtener días no cobrables mapeados a inglés
-        $diasNoCobrables = [];
-        if ($config && !empty($config->dias_no_cobrables)) {
-            $diasNoCobrables = json_decode($config->dias_no_cobrables, true);
-            $diasNoCobrables = array_map(fn($dia) => $mapDias[strtolower($dia)] ?? $dia, $diasNoCobrables);
-        }
-
-        // 2️⃣ Calcular los días transcurridos según la cuota
-        $diasTranscurridos = 0;
-        $diasObjetivo = $factor * ($indiceCuota - 1);
-
-        while ($diasTranscurridos < $diasObjetivo) {
-            $fecha->addDay();
-            if (!in_array($fecha->format('l'), $diasNoCobrables)) {
-                $diasTranscurridos++;
-            }
-        }
-
-        // 3️⃣ Finalmente, si la fecha cae en un día no cobrable, saltarla
-        while (in_array($fecha->format('l'), $diasNoCobrables)) {
-            $fecha->addDay();
-        }
-
-        return $fecha;
+    $diasNoCobrables = [];
+    if ($config && !empty($config->dias_no_cobrables)) {
+        $diasNoCobrables = json_decode($config->dias_no_cobrables, true);
+        $diasNoCobrables = array_map(fn($dia) => $mapDias[strtolower($dia)] ?? $dia, $diasNoCobrables);
     }
+
+    // 3️⃣ Calcular fecha iterando por cuota
+    $cuotasPrevias = $indiceCuota - 1;
+    while ($cuotasPrevias > 0) {
+        $fecha->addDay();
+        if (!in_array($fecha->format('l'), $diasNoCobrables)) {
+            $cuotasPrevias--;
+        }
+    }
+
+    // 4️⃣ Ajustar la fecha si cae en día no cobrable
+    while (in_array($fecha->format('l'), $diasNoCobrables)) {
+        $fecha->addDay();
+    }
+
+    return $fecha;
+}
+
 
     // ---------------------------------------------
     // Actualización de propiedades
@@ -176,7 +173,7 @@ class CreditoForm extends Form
 
     protected function getFactorFrecuencia($frecuencia): float
     {
-        return match($frecuencia) {
+        return match ($frecuencia) {
             'diaria' => 1,
             'semanal' => 7,
             'quincenal' => 15,
@@ -255,59 +252,104 @@ class CreditoForm extends Form
     // ---------------------------------------------
     // Crear crédito
     // ---------------------------------------------
-    public function store(): Credito
-    {
-        // Se impide la creación si el usuario es administrador
-        if (Auth::user()->rol === 'admin') {
-            throw new \Exception("Los administradores no pueden crear créditos.");
+    
+      
+   public function store(): Credito
+{
+    $this->validate();
+    $this->fecha_inicio = $this->fecha_inicio ?? Carbon::today()->toDateString();
+    $this->recalcularCredito();
+
+    $credito = null;
+
+    DB::transaction(function () use (&$credito) {
+        $config = $this->getConfiguracionGlobal();
+        if ($config && !$config->permite_multicredito) {
+            $creditoExistente = Credito::where('cliente_id', $this->cliente_id)
+                ->where('estado', 'activo')
+                ->exists();
+            if ($creditoExistente) {
+                throw new \Exception("El cliente ya tiene un crédito activo y no se permite multicrédito.");
+            }
         }
 
-        $this->validate();
-        $this->fecha_inicio = $this->fecha_inicio ?? Carbon::today()->toDateString();
-        $this->recalcularCredito();
-        $this->fecha_vencimiento = $this->fecha_vencimiento ?? $this->calcularFechaVencimiento($this->plazo);
+        // Crear crédito base
+        $credito = Credito::create($this->creationPayload());
+        $this->credito = $credito;
 
-        $credito = null;
+        $factor = $this->getFactorFrecuencia($this->cuota_frecuencia);
+        $numCuotas = $this->plazo > 0 ? ceil($this->plazo / $factor) : 1;
+        $this->credito->num_cuotas = $numCuotas;
+        $this->credito->save();
 
-        DB::transaction(function () use (&$credito) {
-            $config = $this->getConfiguracionGlobal();
-            if ($config && !$config->permite_multicredito) {
-                $creditoExistente = Credito::where('cliente_id', $this->cliente_id)
-                    ->where('estado', 'activo')
-                    ->exists();
-                if ($creditoExistente) {
-                    throw new \Exception("El cliente ya tiene un crédito activo y no se permite multicrédito.");
+        $cuotaBase = round($this->monto_total / $numCuotas, 2);
+        $sumaPrimeras = $cuotaBase * ($numCuotas - 1);
+        $ultimaCuota = round($this->monto_total - $sumaPrimeras, 2);
+
+        $ultimaFecha = null;
+
+        // Inicializamos la fecha de la primera cuota
+        $fechaCuota = Carbon::parse($this->fecha_inicio);
+
+        // Aplicar días de gracia inicial
+        $diasGracia = $config->dias_gracia_primera_cuota ?? 0;
+        $fechaCuota->addDays($diasGracia);
+
+        // Mapear días no cobrables
+        $mapDias = [
+            'lunes' => 'Monday',
+            'martes' => 'Tuesday',
+            'miércoles' => 'Wednesday',
+            'jueves' => 'Thursday',
+            'viernes' => 'Friday',
+            'sábado' => 'Saturday',
+            'domingo' => 'Sunday',
+        ];
+        $diasNoCobrables = [];
+        if ($config && !empty($config->dias_no_cobrables)) {
+            $diasNoCobrables = json_decode($config->dias_no_cobrables, true);
+            $diasNoCobrables = array_map(fn($dia) => $mapDias[strtolower($dia)] ?? $dia, $diasNoCobrables);
+        }
+
+        for ($i = 1; $i <= $numCuotas; $i++) {
+            // Ajustar fecha si cae en día no cobrable
+            while (in_array($fechaCuota->format('l'), $diasNoCobrables)) {
+                $fechaCuota->addDay();
+            }
+
+            $monto = ($i === $numCuotas) ? $ultimaCuota : $cuotaBase;
+
+            CreditoCuota::create([
+                'credito_id' => $credito->id,
+                'numero_cuota' => $i,
+                'monto' => $monto,
+                'monto_original' => $monto,
+                'fecha_vencimiento' => $fechaCuota->toDateString(),
+                'estado' => 'pendiente',
+            ]);
+
+            $ultimaFecha = $fechaCuota->copy();
+
+            // Avanzar para la próxima cuota según factor
+            $diasSumar = $factor;
+            do {
+                $fechaCuota->addDay();
+                if (!in_array($fechaCuota->format('l'), $diasNoCobrables)) {
+                    $diasSumar--;
                 }
-            }
+            } while ($diasSumar > 0);
+        }
 
-            $credito = Credito::create($this->creationPayload());
-            $this->credito = $credito;
+        // Actualizar fecha de vencimiento del crédito con la última cuota
+        if ($ultimaFecha) {
+            $credito->fecha_vencimiento = $ultimaFecha->toDateString();
+            $credito->save();
+        }
+    });
 
-            $factor = $this->getFactorFrecuencia($this->cuota_frecuencia);
-            $numCuotas = $this->plazo > 0 ? ceil($this->plazo / $factor) : 1;
-            $this->credito->num_cuotas = $numCuotas;
-            $this->credito->save();
+    return $credito;
+}
 
-            $cuotaBase = round($this->monto_total / $numCuotas, 2);
-            $sumaPrimeras = $cuotaBase * ($numCuotas - 1);
-            $ultimaCuota = round($this->monto_total - $sumaPrimeras, 2);
-
-            for ($i = 1; $i <= $numCuotas; $i++) {
-                $monto = ($i === $numCuotas) ? $ultimaCuota : $cuotaBase;
-                $fechaCuota = $this->calcularFechaCuota($i, $factor);
-
-                CreditoCuota::create([
-                    'credito_id' => $credito->id,
-                    'numero_cuota' => $i,
-                    'monto' => $monto,
-                    'fecha_vencimiento' => $fechaCuota->toDateString(),
-                    'estado' => 'pendiente',
-                ]);
-            }
-        });
-
-        return $credito;
-    }
 
     // ---------------------------------------------
     // Actualizar crédito
@@ -331,34 +373,82 @@ class CreditoForm extends Form
     // ---------------------------------------------
     // Recalcular cuotas existentes
     // ---------------------------------------------
-    protected function recalcularCuotas()
-    {
-        if (!$this->credito) return;
+ protected function recalcularCuotas()
+{
+    if (!$this->credito) return;
 
-        $factor = $this->getFactorFrecuencia($this->cuota_frecuencia);
-        $numCuotas = $this->plazo > 0 ? ceil($this->plazo / $factor) : 1;
-        $cuotaBase = round($this->monto_total / $numCuotas, 2);
-        $sumaPrimeras = $cuotaBase * ($numCuotas - 1);
-        $ultimaCuota = round($this->monto_total - $sumaPrimeras, 2);
+    $factor = $this->getFactorFrecuencia($this->cuota_frecuencia);
+    $numCuotas = $this->plazo > 0 ? ceil($this->plazo / $factor) : 1;
+    $cuotaBase = round($this->monto_total / $numCuotas, 2);
+    $sumaPrimeras = $cuotaBase * ($numCuotas - 1);
+    $ultimaCuota = round($this->monto_total - $sumaPrimeras, 2);
 
-        $this->credito->cuotas()->delete();
+    // Eliminar cuotas existentes
+    $this->credito->cuotas()->delete();
 
-        for ($i = 1; $i <= $numCuotas; $i++) {
-            $monto = ($i === $numCuotas) ? $ultimaCuota : $cuotaBase;
-            $fechaCuota = $this->calcularFechaCuota($i, $factor);
+    // Inicializamos la fecha de la primera cuota
+    $fechaCuota = Carbon::parse($this->fecha_inicio);
 
-            CreditoCuota::create([
-                'credito_id' => $this->credito->id,
-                'numero_cuota' => $i,
-                'monto' => $monto,
-                'fecha_vencimiento' => $fechaCuota->toDateString(),
-                'estado' => 'pendiente',
-            ]);
+    // Aplicar días de gracia inicial
+    $config = $this->getConfiguracionGlobal();
+    $diasGracia = $config->dias_gracia_primera_cuota ?? 0;
+    $fechaCuota->addDays($diasGracia);
+
+    // Mapear días no cobrables
+    $mapDias = [
+        'lunes' => 'Monday',
+        'martes' => 'Tuesday',
+        'miércoles' => 'Wednesday',
+        'jueves' => 'Thursday',
+        'viernes' => 'Friday',
+        'sábado' => 'Saturday',
+        'domingo' => 'Sunday',
+    ];
+    $diasNoCobrables = [];
+    if ($config && !empty($config->dias_no_cobrables)) {
+        $diasNoCobrables = json_decode($config->dias_no_cobrables, true);
+        $diasNoCobrables = array_map(fn($dia) => $mapDias[strtolower($dia)] ?? $dia, $diasNoCobrables);
+    }
+
+    $ultimaFecha = null;
+
+    for ($i = 1; $i <= $numCuotas; $i++) {
+        // Ajustar fecha si cae en día no cobrable
+        while (in_array($fechaCuota->format('l'), $diasNoCobrables)) {
+            $fechaCuota->addDay();
         }
 
+        $monto = ($i === $numCuotas) ? $ultimaCuota : $cuotaBase;
+
+        CreditoCuota::create([
+            'credito_id' => $this->credito->id,
+            'numero_cuota' => $i,
+            'monto' => $monto,
+            'monto_original' => $monto,
+            'fecha_vencimiento' => $fechaCuota->toDateString(),
+            'estado' => 'pendiente',
+        ]);
+
+        $ultimaFecha = $fechaCuota->copy();
+
+        // Avanzar para la próxima cuota según factor
+        $diasSumar = $factor;
+        do {
+            $fechaCuota->addDay();
+            if (!in_array($fechaCuota->format('l'), $diasNoCobrables)) {
+                $diasSumar--;
+            }
+        } while ($diasSumar > 0);
+    }
+
+    // Actualizar fecha de vencimiento del crédito con la última cuota
+    if ($ultimaFecha) {
+        $this->credito->fecha_vencimiento = $ultimaFecha->toDateString();
         $this->credito->num_cuotas = $numCuotas;
         $this->credito->save();
     }
+}
+
 
     public function setCredito(Credito $credito): void
     {

@@ -3,10 +3,7 @@
         <div class="flex justify-between h-16">
             <div class="flex">
                 <div class="shrink-0 flex items-center">
-                    <img src="{{ asset('logo.png') }}" alt="Logo" class="h-9 w-auto" onerror="this.style.display='none'; this.nextElementSibling.style.display='inline'">
-                    <span class="text-3xl sm:text-4xl font-extrabold text-blue-600 dark:text-blue-400 tracking-wide">
-                        <span class="text-gray-800 dark:text-gray-200">C</span><span class="text-blue-600 dark:text-blue-400">G</span> Sistema
-                    </span>
+                  <livewire:navigation-logo size="h-9 w-auto" />
                 </div>
                 <div class="hidden md:flex md:items-center md:space-x-8 md:ms-10">
                     <x-nav-link class="dark:text-gray-300" :href="route('dashboard')" :active="request()->routeIs('dashboard')">
@@ -133,6 +130,7 @@
                 <i class="fa-solid fa-money-bill-transfer"></i>
                 <span>{{ __('Abonos') }}</span>
             </x-responsive-nav-link>
+              @role('Administrador')
             <x-responsive-nav-link :href="route('abonos.report')" :active="request()->routeIs('abonos.report')" class="flex items-center space-x-2">
                 <i class="fa-solid fa-chart-line"></i>
                 <span>{{ __('Reporte de Abonos') }}</span>
@@ -145,6 +143,12 @@
                 <i class="fa-solid fa-user-lock"></i>
                 <span>{{ __('Roles') }}</span>
             </x-responsive-nav-link>
+            <x-responsive-nav-link :href="route('configuraciones')" :active="request()->routeIs('configuraciones')" class="flex items-center space-x-2">
+                <i class="fa-solid fa-user-lock"></i>
+                <span>{{ __('Configuraciones') }}</span>
+            </x-responsive-nav-link>
+
+            @endrole
         </div>
         <div class="pt-4 pb-1 border-t border-gray-200 dark:border-gray-700">
             <div class="px-4 flex items-center space-x-3">
@@ -182,36 +186,4 @@
     </div>
 </nav>
 
-<script>
-    (function() {
-        const html = document.documentElement;
-        const toggles = [document.getElementById('dark-mode-toggle'), document.getElementById('dark-mode-toggle-mobile')];
-
-        function setIcon(btn) {
-            if (html.classList.contains('dark')) {
-                btn.textContent = '🌙';
-            } else {
-                btn.textContent = '☀️';
-            }
-        }
-
-        toggles.forEach(btn => {
-            if (!btn) return;
-            setIcon(btn);
-            btn.addEventListener('click', () => {
-                html.classList.toggle('dark');
-                localStorage.setItem('theme', html.classList.contains('dark') ? 'dark' : 'light');
-                toggles.forEach(setIcon);
-            });
-        });
-
-        // 👇 Ajustado: por defecto claro
-        if (localStorage.getItem('theme') === 'dark') {
-            html.classList.add('dark');
-        } else {
-            html.classList.remove('dark'); // asegúrate que arranque en claro
-        }
-    })();
-
-</script>
 

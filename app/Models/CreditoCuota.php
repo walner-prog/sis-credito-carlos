@@ -10,6 +10,7 @@ class CreditoCuota extends Model
         'credito_id',
         'numero_cuota',
         'monto',
+        'monto_original',
         'fecha_vencimiento',
         'estado', // pendiente, pagada, atrasada
     ];

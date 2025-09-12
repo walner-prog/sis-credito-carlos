@@ -2,37 +2,33 @@
 
 namespace Database\Seeders;
 
-use App\Models\Cliente;
 use Illuminate\Database\Seeder;
+use App\Models\Cliente;
 use Faker\Factory as Faker;
 
 class CustomerSeeder extends Seeder
 {
     public function run()
     {
-        $faker = Faker::create('es_ES'); // Configura para generar datos en español
+        $faker = Faker::create('es_ES');
 
-        // Generar 500 clientes
         for ($i = 0; $i < 500; $i++) {
             Cliente::create([
-                'nombres' => $faker->firstName,  // Nombres del cliente
-                'apellidos' => $faker->lastName,  // Apellidos del cliente
-                'identificacion' => $faker->unique()->numerify('####-#######-###'),  // Identificación
-                'telefono' => $faker->phoneNumber,  // Teléfono
-                'direccion' => $this->generateAddress(),  // Dirección
-                'km_referencia' => $faker->optional()->word, // KM referencia opcional
-                'estado' => 'activo',  // Estado por defecto
+                'nombres'       => $faker->firstName,
+                'apellidos'     => $faker->lastName,
+                'identificacion'=> $faker->unique()->numerify('##########'), // 10 dígitos únicos
+                'telefono'      => $faker->optional()->numerify('+505########'),
+                'direccion'     => $faker->optional()->address,
+                'km_referencia' => $faker->optional()->randomElement([
+                    'KM 5 Carretera Vieja a León',
+                    'KM 10 Carretera Norte',
+                    'KM 12 Masaya',
+                    'KM 20 León',
+                    'KM 15 Granada'
+                ]),
+                'cartera_id'    => null, // se puede asignar después si es necesario
+                'estado'        => $faker->randomElement(['activo']),
             ]);
         }
-    }
-
-    private function generateAddress()
-    {
-        // Direcciones ficticias de Nicaragua, se pueden personalizar
-        $streets = ['Calle Principal', 'Avenida Central', 'Calle Los Robles', 'Calle El Progreso', 'Avenida Bolívar'];
-        $number = rand(1, 150);  // Número de casa aleatorio
-        $street = $streets[array_rand($streets)];
-
-        return "$street #$number";
     }
 }

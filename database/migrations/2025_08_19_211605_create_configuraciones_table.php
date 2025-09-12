@@ -11,7 +11,8 @@ return new class extends Migration
         Schema::create('configuraciones', function (Blueprint $table) {
             $table->id();
             // Identidad de la empresa
-            $table->string('logo')->nullable();            // ruta del logo (storage/public)
+            $table->string('logo')->nullable();             // ruta del logo (storage/public)
+            $table->string('logo_delete_url')->nullable();  // URL imgbb
             $table->string('nombre_sistema')->nullable();
             $table->string('ruc')->nullable();
             $table->string('direccion')->nullable();

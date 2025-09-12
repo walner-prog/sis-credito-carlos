@@ -48,8 +48,8 @@ class ClienteForm extends Form
                     ->ignore($this->cliente?->id)
                     ->whereNull('deleted_at'),
             ],
-            'telefono' => 'required|string|max:20',
-            'direccion' => 'required|string|max:500',
+            'telefono' => 'nullable|string|max:20',
+            'direccion' => 'nullable|string|max:500',
             'km_referencia' => 'nullable|string|max:50',
             'estado' => ['required', Rule::in(['activo', 'inactivo'])],
             'cartera_id' => 'required|exists:carteras,id',

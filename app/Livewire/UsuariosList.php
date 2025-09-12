@@ -21,11 +21,27 @@ class UsuariosList extends Component
     public $modalConfirmar = false;
     public $usuarioIdAEliminar = null;
 
+    // 🔹 Estado para menú de acciones
+    public $menuAccionId = null;
+
     protected $paginationTheme = 'tailwind';
 
     public function updatingSearch()
     {
         $this->resetPage();
+    }
+
+    // -------------------------------
+    // 📌 Menú Acciones
+    // -------------------------------
+    public function toggleMenu($id)
+    {
+        $this->menuAccionId = $this->menuAccionId === $id ? null : $id;
+    }
+
+    public function closeMenu()
+    {
+        $this->menuAccionId = null;
     }
 
     // -------------------------------
@@ -48,6 +64,7 @@ class UsuariosList extends Component
         $this->form->carteras = \App\Models\Cartera::all();
         $this->modo = 'editar';
         $this->isOpen = true;
+        $this->closeMenu();
     }
 
     public function cerrarModal()
@@ -69,25 +86,37 @@ class UsuariosList extends Component
         $this->isOpen = false;
     }
 
-    // Nuevo método para abrir el modal de confirmación
+    // -------------------------------
+    // 📌 Eliminar
+    // -------------------------------
     public function confirmarEliminar($id)
     {
         $this->usuarioIdAEliminar = $id;
         $this->modalConfirmar = true;
+        $this->closeMenu();
     }
 
-    // Nuevo método para ejecutar la eliminación
     public function eliminarConfirmado()
     {
         $usuario = User::findOrFail($this->usuarioIdAEliminar);
 
-        if ($usuario->email === 'admin@tusitio.com' || $usuario->email === 'ca140611@gmail.com') {
+        // Bloquear eliminación de Administrador o email específico
+        if ($usuario->roles->contains('name', 'Administrador') || $usuario->email === 'ca140611@gmail.com') {
             session()->flash('error', '⚠️ No puedes eliminar al usuario administrador.');
             $this->modalConfirmar = false;
             $this->usuarioIdAEliminar = null;
             return;
         }
 
+        // Bloquear eliminación si el usuario tiene alguna cartera
+        if (\App\Models\Cartera::where('user_id', $usuario->id)->exists()) {
+            session()->flash('error', '⚠️ No se puede eliminar un usuario que tiene carteras asignadas.');
+            $this->modalConfirmar = false;
+            $this->usuarioIdAEliminar = null;
+            return;
+        }
+
+        // Eliminación segura
         $usuario->delete();
         session()->flash('delete', '🗑️ Usuario eliminado correctamente.');
         $this->resetPage();
@@ -109,6 +138,7 @@ class UsuariosList extends Component
     {
         $this->usuarioVer = User::findOrFail($id);
         $this->verModal = true;
+        $this->closeMenu();
     }
 
     public function cerrarModalVer()

@@ -23,6 +23,12 @@ class RolesList extends Component
     public $modalConfirmar = false;
     public $rolIdAEliminar = null;
 
+    public $menuAccionId = null;
+    public $buscarAbierto = false;
+
+
+
+
     protected $paginationTheme = 'tailwind';
 
     public function updatingSearch()
@@ -79,26 +85,45 @@ class RolesList extends Component
         $this->rolIdAEliminar = $id;
         $this->modalConfirmar = true;
     }
+// Nuevo método para ejecutar la eliminación
+public function eliminarConfirmado()
+{
+    $role = Role::findOrFail($this->rolIdAEliminar);
 
-    // Nuevo método para ejecutar la eliminación
-    public function eliminarConfirmado()
-    {
-        $role = Role::findOrFail($this->rolIdAEliminar);
-
-        if ($role->name === 'Administrador') {
-            session()->flash('error', 'El rol Administrador no se puede eliminar.');
-            $this->modalConfirmar = false; // Cierra el modal
-            $this->rolIdAEliminar = null; // Resetea el ID
-            return;
-        }
-
-        $role->delete();
-        session()->flash('delete', 'Rol eliminado correctamente.');
-        $this->resetPage();
-
+    // Evitar eliminar roles críticos
+    if (in_array($role->name, ['Administrador', 'Cobrador'])) {
+        session()->flash('error', "El rol {$role->name} no se puede eliminar.");
         $this->modalConfirmar = false; // Cierra el modal
-        $this->rolIdAEliminar = null; // Resetea el ID
+        $this->rolIdAEliminar = null;  // Resetea el ID
+        return;
     }
+
+    $role->delete();
+    session()->flash('delete', 'Rol eliminado correctamente.');
+    $this->resetPage();
+
+    $this->modalConfirmar = false; // Cierra el modal
+    $this->rolIdAEliminar = null;  // Resetea el ID
+}
+
+public function toggleMenu($id)
+{
+    $this->menuAccionId = $this->menuAccionId === $id ? null : $id;
+}
+
+
+
+public function toggleBuscar()
+{
+    $this->buscarAbierto = !$this->buscarAbierto;
+}
+
+public function cerrarBuscar()
+{
+    $this->buscarAbierto = false;
+    $this->search = '';
+}
+
 
 
     public function resetForm()

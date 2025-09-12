@@ -14,7 +14,7 @@ class CreateCreditoCuotasTable extends Migration
             $table->foreignId('credito_id')
                 ->constrained('creditos')
                 ->onDelete('cascade');
-
+            $table->decimal('monto_original', 10, 2)->comment('Monto original de la cuota');
             $table->integer('numero_cuota')->comment('Número de la cuota dentro del crédito');
             $table->decimal('monto', 10, 2)->comment('Monto de la cuota');
             $table->date('fecha_vencimiento')->comment('Fecha de vencimiento de la cuota');

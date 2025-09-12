@@ -29,15 +29,15 @@ class AbonoForm extends Form
         ];
     }
 
-      public function messages(): array
-{
-    return [
-        'monto_abono.required' => '⚠️ Debe ingresar un monto antes de registrar el abono.',
-        'monto_abono.numeric'  => '⚠️ El monto debe ser un número válido.',
-        'monto_abono.min'      => '⚠️ El monto debe ser mayor a 0.',
-        'monto_abono.max'      => '⚠️ El monto no puede ser mayor al saldo pendiente.',
-    ];
-}
+    public function messages(): array
+    {
+        return [
+            'monto_abono.required' => '⚠️ Debe ingresar un monto antes de registrar el abono.',
+            'monto_abono.numeric'  => '⚠️ El monto debe ser un número válido.',
+            'monto_abono.min'      => '⚠️ El monto debe ser mayor a 0.',
+            'monto_abono.max'      => '⚠️ El monto no puede ser mayor al saldo pendiente.',
+        ];
+    }
 
     public function setAbono(Abono $abono): void
     {
@@ -70,7 +70,7 @@ class AbonoForm extends Form
     {
         $credito->saldo_pendiente = $credito
             ->cuotas()
-            ->whereIn('estado', ['pendiente','parcial','atrasada'])
+            ->whereIn('estado', ['pendiente', 'parcial', 'atrasada'])
             ->sum('monto');
 
         $credito->estado = $credito->saldo_pendiente <= 0 ? 'cancelado' : 'activo';
@@ -84,17 +84,17 @@ class AbonoForm extends Form
     {
 
         // Si el usuario dejó vacío el input, forzar a null en lugar de 0
-    if (trim($this->monto_abono) === '' || $this->monto_abono === null) {
-        session()->flash('error', '⚠️ Debe ingresar un monto válido.');
-        return;
-    }
-    
+        if (trim($this->monto_abono) === '' || $this->monto_abono === null) {
+            session()->flash('error', '⚠️ Debe ingresar un monto válido.');
+            return;
+        }
+
         $this->validate();
 
-         if ($this->monto_abono <= 0) {
-        session()->flash('error', '⚠️ Debe ingresar un monto mayor a 0 antes de registrar el abono.');
-        return;
-    }
+        if ($this->monto_abono <= 0) {
+            session()->flash('error', '⚠️ Debe ingresar un monto mayor a 0 antes de registrar el abono.');
+            return;
+        }
 
 
         DB::transaction(function () {
@@ -108,7 +108,7 @@ class AbonoForm extends Form
 
             // Buscar la próxima cuota a afectar (incluyendo atrasadas)
             $proximaCuota = $credito->cuotas()
-                ->whereIn('estado', ['pendiente','atrasada'])
+                ->whereIn('estado', ['pendiente', 'atrasada'])
                 ->orderBy('numero_cuota')
                 ->first();
 
@@ -123,10 +123,12 @@ class AbonoForm extends Form
                 'fecha_abono'  => $this->fecha_abono,
                 'comentarios'  => $this->comentarios,
                 'numero_cuota' => $numeroCuota,
+                'estado'       => 'pagado', // 🔹 Nuevo
             ]);
 
+
             // Aplicar abono a cuotas (pendientes o atrasadas)
-            foreach ($credito->cuotas()->whereIn('estado',['pendiente','atrasada'])->orderBy('numero_cuota')->get() as $cuota) {
+            foreach ($credito->cuotas()->whereIn('estado', ['pendiente', 'atrasada'])->orderBy('numero_cuota')->get() as $cuota) {
                 if ($montoRestante <= 0) break;
 
                 if ($montoRestante >= $cuota->monto) {
@@ -150,93 +152,112 @@ class AbonoForm extends Form
      * Actualizar un abono existente y reajustar cuotas.
      */
     public function update(): void
-    {
-        if (!$this->abono) {
-            throw new \RuntimeException('No hay abono para actualizar.');
+{
+    if (!$this->abono) {
+        throw new \RuntimeException('No hay abono para actualizar.');
+    }
+
+    $this->validate();
+
+    DB::transaction(function () {
+        $abonoOriginal = Abono::findOrFail($this->abono->id);
+        $credito = $abonoOriginal->credito;
+
+        // 1. Actualizar datos del abono (antes de recalcular)
+        $abonoOriginal->update([
+            'monto_abono' => $this->monto_abono,
+            'fecha_abono' => $this->fecha_abono,
+            'comentarios' => $this->comentarios,
+            'estado'      => 'pagado',
+        ]);
+
+        // 2. Resetear todas las cuotas al estado original
+        foreach ($credito->cuotas as $cuota) {
+            $cuota->monto = $cuota->monto_original;
+            $cuota->estado = 'pendiente';
+            $cuota->save();
         }
 
-        $this->validate();
+        // 3. Reaplicar todos los abonos (incluido el actualizado)
+        $abonos = $credito->abonos()->orderBy('fecha_abono')->orderBy('id')->get();
 
-        DB::transaction(function () {
-            $abonoOriginal = Abono::findOrFail($this->abono->id);
-            $credito = $abonoOriginal->credito;
+        foreach ($abonos as $abono) {
+            $montoRestante = $abono->monto_abono;
 
-            // Actualizar cuotas atrasadas primero
-            $this->actualizarCuotasAtrasadas($credito);
-
-            $montoOriginal = $abonoOriginal->monto_abono;
-
-            // Revertir cuotas afectadas por el abono original
-            foreach ($credito->cuotas()->where('numero_cuota', '>=', $abonoOriginal->numero_cuota)->orderBy('numero_cuota')->get() as $cuota) {
-                if ($cuota->estado == 'pagada') {
-                    $cuota->estado = 'pendiente';
-                    $cuota->save();
-                } elseif ($cuota->estado == 'parcial') {
-                    $cuota->monto += $montoOriginal;
-                    $cuota->estado = 'pendiente';
-                    $cuota->save();
-                }
-            }
-
-            // Actualizar datos del abono
-            $abonoOriginal->update([
-                'monto_abono' => $this->monto_abono,
-                'fecha_abono' => $this->fecha_abono,
-                'comentarios' => $this->comentarios,
-            ]);
-
-            // Aplicar el nuevo monto del abono
-            $montoRestante = $this->monto_abono;
-
-            foreach ($credito->cuotas()->whereIn('estado',['pendiente','atrasada'])->orderBy('numero_cuota')->get() as $cuota) {
+            foreach ($credito->cuotas()->whereIn('estado', ['pendiente', 'atrasada', 'parcial'])->orderBy('numero_cuota')->get() as $cuota) {
                 if ($montoRestante <= 0) break;
 
                 if ($montoRestante >= $cuota->monto) {
                     $montoRestante -= $cuota->monto;
+                    $cuota->monto = 0;
                     $cuota->estado = 'pagada';
-                    $cuota->save();
                 } else {
                     $cuota->monto -= $montoRestante;
+                    $cuota->estado = $cuota->monto > 0 ? 'parcial' : 'pagada';
                     $montoRestante = 0;
-                    $cuota->estado = 'parcial';
-                    $cuota->save();
                 }
+
+                $cuota->save();
             }
 
-            // Recalcular saldo y estado
-            $this->recalcularCredito($credito);
-        });
-    }
+            $abono->estado = 'pagado';
+            $abono->save();
+        }
+
+        // 4. Recalcular saldo y estado del crédito
+        $this->recalcularCredito($credito);
+    });
+}
+
 
     /**
      * Eliminar un abono y revertir las cuotas.
      */
-    public function deleteAbono(Abono $abono): void
-    {
-        DB::transaction(function () use ($abono) {
-            $credito = $abono->credito;
+   public function deleteAbono(Abono $abono): void
+{
+    DB::transaction(function () use ($abono) {
+        $credito = $abono->credito;
 
-            // Primero, actualizar cuotas atrasadas
-            $this->actualizarCuotasAtrasadas($credito);
+        // 1. Eliminar el abono
+        $abono->delete();
 
-            $montoAbono = $abono->monto_abono;
+        // 2. Resetear cuotas al estado original
+        foreach ($credito->cuotas as $cuota) {
+            $cuota->monto = $cuota->monto_original;
+            $cuota->estado = 'pendiente';
+            $cuota->save();
+        }
 
-            foreach ($credito->cuotas()->where('numero_cuota', '>=', $abono->numero_cuota)->orderBy('numero_cuota')->get() as $cuota) {
-                if ($cuota->estado == 'pagada') {
-                    $cuota->estado = 'pendiente';
-                    $cuota->save();
-                } elseif ($cuota->estado == 'parcial') {
-                    $cuota->monto += $montoAbono;
-                    $cuota->estado = 'pendiente';
-                    $cuota->save();
-                }
+        // 3. Reaplicar todos los abonos en orden
+        $abonosRestantes = $credito->abonos()->orderBy('fecha_abono')->orderBy('id')->get();
+
+        foreach ($abonosRestantes as $abonoRestante) {
+            $montoRestante = $abonoRestante->monto_abono;
+
+            foreach ($credito->cuotas()->whereIn('estado', ['pendiente', 'atrasada', 'parcial'])->orderBy('numero_cuota')->get() as $cuota) {
+                if ($montoRestante <= 0) break;
+
+                    if ($montoRestante >= $cuota->monto) {
+                        $montoRestante -= $cuota->monto;
+                        $cuota->monto = 0; // lo pendiente ahora es 0
+                        $cuota->estado = 'pagada';
+                    } else {
+                        $cuota->monto -= $montoRestante;
+                        $cuota->estado = $cuota->monto > 0 ? 'parcial' : 'pagada';
+                        $montoRestante = 0;
+                    }
+
+                $cuota->save();
             }
 
-            // Eliminar el abono
-            $abono->delete();
+            // marcar el abono reaplicado
+            $abonoRestante->estado = 'pagado';
+            $abonoRestante->save();
+        }
 
-            // Recalcular saldo y estado
-            $this->recalcularCredito($credito);
-        });
-    }
+        // 4. Recalcular saldo
+        $this->recalcularCredito($credito);
+    });
+}
+
 }

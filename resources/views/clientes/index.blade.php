@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="X-UA-Compatible" content="ie=edge">
     <title>Clientes</title>
+       <link rel="shortcut icon" href="{{ asset('img/logo/logo.png') }}">
 </head>
 <body>
     
@@ -15,7 +16,7 @@
      
 
     <main class="flex-grow">
-
+     <livewire:actualizar-cuotas />
       <livewire:clientes-list />
     </main>
 

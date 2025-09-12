@@ -27,7 +27,23 @@ class ClientesList extends Component
     public $clienteIdAEliminar = null;
     public $creditoSeleccionado = null; // Crédito seleccionado para el abono
 
+    public $openAcciones = []; // controla qué menú está abierto en móvil
+
+
+
     protected $paginationTheme = 'tailwind';
+
+
+    public function toggleAcciones($id)
+    {
+        $this->openAcciones[$id] = !($this->openAcciones[$id] ?? false);
+    }
+
+    public function cerrarAcciones($id)
+    {
+        $this->openAcciones[$id] = false;
+    }
+
 
     public function updatingSearch()
     {
@@ -87,7 +103,29 @@ class ClientesList extends Component
 
     public function eliminarConfirmado()
     {
-        $cliente = Cliente::findOrFail($this->clienteIdAEliminar);
+        $cliente = Cliente::with(['creditos', 'abonos', 'cartera'])->findOrFail($this->clienteIdAEliminar);
+
+        if ($cliente->creditos->count() > 0) {
+            session()->flash('error', '⚠️ No se puede eliminar el cliente porque tiene créditos asociados.');
+            $this->modalConfirmar = false;
+            $this->clienteIdAEliminar = null;
+            return;
+        }
+
+        if ($cliente->abonos->count() > 0) {
+            session()->flash('error', '⚠️ No se puede eliminar el cliente porque tiene abonos registrados.');
+            $this->modalConfirmar = false;
+            $this->clienteIdAEliminar = null;
+            return;
+        }
+
+        if ($cliente->cartera) {
+            session()->flash('error', '⚠️ No se puede eliminar el cliente porque está asignado a una cartera.');
+            $this->modalConfirmar = false;
+            $this->clienteIdAEliminar = null;
+            return;
+        }
+
         $cliente->delete();
         session()->flash('delete', 'Cliente eliminado correctamente.');
         $this->resetPage();

@@ -1,11 +1,11 @@
 <div class="p-6 lg:p-12 bg-gradient-to-r from-blue-50 via-purple-50 to-pink-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen">
-    
+    <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">Gestión de Carteras</h2>
     {{-- Header para Escritorio --}}
     <div class="hidden lg:flex flex-col sm:flex-row justify-between items-center gap-4">
         @role('Administrador')
-            <button wire:click="abrirModalCrear" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow-md transition">
-                + Nueva Cartera
-            </button>
+        <button wire:click="abrirModalCrear" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow-md transition">
+            + Nueva Cartera
+        </button>
         @endrole
         <input type="text" wire:model.live="search" placeholder="Buscar por nombre..." class="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 w-full sm:w-1/3 dark:bg-gray-800 dark:text-gray-200 focus:ring focus:ring-blue-400">
     </div>
@@ -13,9 +13,9 @@
     {{-- Header para Móvil --}}
     <div class="lg:hidden flex flex-col sm:flex-row justify-between items-center gap-4">
         @role('Administrador')
-            <button wire:click="abrirModalCrear" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow-md transition w-full sm:w-auto">
-                + Nueva Cartera
-            </button>
+        <button wire:click="abrirModalCrear" class="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-xl shadow-md transition w-full sm:w-auto">
+            + Nueva Cartera
+        </button>
         @endrole
         <input type="text" wire:model.live="search" placeholder="Buscar por nombre..." class="border border-gray-300 dark:border-gray-700 rounded-lg px-3 py-2 w-full dark:bg-gray-800 dark:text-gray-200 focus:ring focus:ring-blue-400 mt-2 sm:mt-0">
     </div>
@@ -24,20 +24,29 @@
 
     {{-- Notificaciones --}}
     @if (session()->has('create'))
-    <div class="session-message bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 p-3 mt-4 rounded-lg shadow-md">
+    <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show" class="session-message bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 p-3 mt-4 rounded-lg shadow-md">
         {{ session('create') }}
     </div>
     @endif
+
     @if (session()->has('update'))
-    <div class="session-message bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-200 p-3 mt-4 rounded-lg shadow-md">
+    <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show" class="session-message bg-yellow-100 text-yellow-800 dark:bg-yellow-700 dark:text-yellow-200 p-3 mt-4 rounded-lg shadow-md">
         {{ session('update') }}
     </div>
     @endif
+
     @if (session()->has('delete'))
-    <div class="session-message bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 p-3 mt-4 rounded-lg shadow-md">
+    <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show" class="session-message bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 p-3 mt-4 rounded-lg shadow-md">
         {{ session('delete') }}
     </div>
     @endif
+
+    @if (session()->has('error'))
+    <div x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show" class="bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200 p-3 mt-4 rounded-lg shadow-md">
+        {{ session('error') }}
+    </div>
+    @endif
+
 
     {{-- Tabla para Escritorio --}}
     <div class="overflow-x-auto mt-6 hidden md:block">
@@ -61,19 +70,31 @@
                         </span>
                     </td>
                     <td class="p-3 flex flex-wrap gap-2">
-                        <td class="p-3 flex flex-wrap gap-2">
+                    <td class="p-3 flex flex-wrap gap-2">
                         @role('Administrador')
-                            <button wire:click="abrirModalEditar({{ $cartera->id }})" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg shadow transition" title="Editar">
-                                <i class="fas fa-edit"></i>
-                            </button>
+                        <button wire:click="abrirModalEditar({{ $cartera->id }})" class="bg-yellow-500 hover:bg-yellow-600 text-white px-3 py-1 rounded-lg shadow transition" title="Editar">
+                            <i class="fas fa-edit"></i>
+                        </button>
                         @endrole
+                        {{-- Botón Ver Cartera --}}
+                        @role('Administrador')
                         <button wire:click="abrirModalVer({{ $cartera->id }})" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-lg shadow transition" title="Detalles">
                             <i class="fas fa-eye"></i>
                         </button>
+                        @endrole
+
+                        @role('Cobrador')
+                        @if($cartera->user_id === auth()->id())
+                        <button wire:click="abrirModalVer({{ $cartera->id }})" class="bg-indigo-500 hover:bg-indigo-600 text-white px-3 py-1 rounded-lg shadow transition" title="Detalles">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        @endif
+                        @endrole
+
                         @role('Administrador')
-                            <button wire:click="confirmarEliminar({{ $cartera->id }})" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg shadow transition" title="Eliminar">
-                                <i class="fas fa-trash-alt"></i>
-                            </button>
+                        <button wire:click="confirmarEliminar({{ $cartera->id }})" class="bg-red-600 hover:bg-red-700 text-white px-3 py-1 rounded-lg shadow transition" title="Eliminar">
+                            <i class="fas fa-trash-alt"></i>
+                        </button>
                         @endrole
                     </td>
                 </tr>
@@ -92,25 +113,37 @@
         <div wire:key="cartera-{{ $cartera->id }}" class="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-md border border-gray-200 dark:border-gray-700">
             <div class="flex justify-between items-center mb-2">
                 <h4 class="font-bold text-gray-800 dark:text-gray-100">{{ $cartera->nombre }}</h4>
-  <div class="flex gap-2">
+                <div class="flex gap-2">
                     @role('Administrador')
-                        <button wire:click="abrirModalEditar({{ $cartera->id }})" class="bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded-full shadow transition" title="Editar">
-                            <i class="fas fa-edit text-xs"></i>
-                        </button>
+                    <button wire:click="abrirModalEditar({{ $cartera->id }})" class="bg-yellow-500 hover:bg-yellow-600 text-white p-2 rounded-full shadow transition" title="Editar">
+                        <i class="fas fa-edit text-xs"></i>
+                    </button>
                     @endrole
+                    {{-- Botón Ver Cartera en móvil --}}
+                    @role('Administrador')
                     <button wire:click="abrirModalVer({{ $cartera->id }})" class="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-full shadow transition" title="Detalles">
                         <i class="fas fa-eye text-xs"></i>
                     </button>
+                    @endrole
+
+                    @role('Cobrador')
+                    @if($cartera->user_id === auth()->id())
+                    <button wire:click="abrirModalVer({{ $cartera->id }})" class="bg-indigo-500 hover:bg-indigo-600 text-white p-2 rounded-full shadow transition" title="Detalles">
+                        <i class="fas fa-eye text-xs"></i>
+                    </button>
+                    @endif
+                    @endrole
+
                     @role('Administrador')
-                        <button wire:click="confirmarEliminar({{ $cartera->id }})" class="bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow transition" title="Eliminar">
-                            <i class="fas fa-trash-alt text-xs"></i>
-                        </button>
+                    <button wire:click="confirmarEliminar({{ $cartera->id }})" class="bg-red-600 hover:bg-red-700 text-white p-2 rounded-full shadow transition" title="Eliminar">
+                        <i class="fas fa-trash-alt text-xs"></i>
+                    </button>
                     @endrole
                 </div>
             </div>
             <p class="text-sm text-gray-500 dark:text-gray-400">Responsable: {{ $cartera->user->name ?? 'Sin usuario' }}</p>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Estado: 
+                Estado:
                 <span class="px-2 py-1 rounded text-xs {{ $cartera->estado ? 'bg-green-200 text-green-800' : 'bg-red-200 text-red-800' }}">
                     {{ $cartera->estado ? 'Activa' : 'Inactiva' }}
                 </span>
@@ -247,3 +280,4 @@
     </div>
     @endif
 </div>
+

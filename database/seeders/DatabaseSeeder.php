@@ -13,13 +13,15 @@ class DatabaseSeeder extends Seeder
     {
         // 1. Datos básicos del sistema
         $this->call(RolesSeeder::class);
-        $this->call(PermissionsSeeder::class);
-         $this->call(CarteraSeeder::class);
-        $this->call(ClienteSeeder::class); 
-       // $this->call(CreditoSeeder::class);
-     //   $this->call(CustomerSeeder::class);
-       // $this->call(CreditSeeder::class);
         $this->call(UserSeeder::class);
+        $this->call(PermissionsSeeder::class);
+        $this->call(CarteraSeeder::class);
+        $this->call(ClienteSeeder::class);
+        $this->call(ConfiguracionSeeder::class);
+       // $this->call(CreditoSeeder::class);
+      //  $this->call(CustomerSeeder::class);
+       // $this->call(CreditSeeder::class);
+      
         
         
         

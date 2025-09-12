@@ -9,6 +9,8 @@ use Livewire\WithPagination;
 use App\Livewire\Forms\CreditoForm;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Cartera;
+use Barryvdh\DomPDF\Facade\Pdf;
+
 
 class CreditosList extends Component
 {
@@ -21,6 +23,7 @@ class CreditosList extends Component
     public $creditoVer = null;
     public $verModal = false;
     public $cuotasCredito = [];
+    public $mensajeEliminarCredito = '';
 
     // buscador inteligente
     public $clienteSearch = '';
@@ -29,7 +32,40 @@ class CreditosList extends Component
     public $modalConfirmar = false;
     public $creditoIdAEliminar = null;
     protected $paginationTheme = 'tailwind';
-    
+    public $openDetalles = [];      // controla qué tarjeta tiene los detalles abiertos
+    public $openAcciones = [];      // controla qué menú de acciones está abierto
+
+
+    public $buscarAbierto = false;
+
+    public function toggleBuscar()
+    {
+        $this->buscarAbierto = !$this->buscarAbierto;
+    }
+
+    public function cerrarBuscar()
+    {
+        $this->buscarAbierto = false;
+        $this->search = '';
+    }
+
+    public function toggleDetalles($id)
+    {
+        $this->openDetalles[$id] = !($this->openDetalles[$id] ?? false);
+    }
+
+    public function toggleAcciones($id)
+    {
+        $this->openAcciones[$id] = !($this->openAcciones[$id] ?? false);
+    }
+
+    public function cerrarAcciones($id)
+    {
+        $this->openAcciones[$id] = false;
+    }
+
+
+
 
     public function updatingSearch()
     {
@@ -58,19 +94,20 @@ class CreditosList extends Component
         $this->isOpen = true;
     }
 
-    
 
     public function abrirModalEditar($id)
     {
-        // Se impide la acción si el usuario es administrador
-        if (Auth::user()->rol === 'admin') {
+        $credito = Credito::with(['cliente', 'cuotas'])->findOrFail($id);
+
+        // Bloquear si ya existe alguna cuota que no esté pendiente
+        if ($credito->cuotas()->whereIn('estado', ['pagada', 'parcial'])->exists()) {
+            session()->flash('error', '❌ No puedes editar este crédito porque ya tiene abonos registrados.');
             return;
         }
 
-        $credito = Credito::with('cliente')->findOrFail($id);
         $this->form->setCredito($credito);
 
-        $this->clienteSearch = optional($credito->cliente)->nombres.' '.optional($credito->cliente)->apellidos;
+        $this->clienteSearch = optional($credito->cliente)->nombres . ' ' . optional($credito->cliente)->apellidos;
         $this->clientesFiltrados = $this->clientesIniciales();
 
         $this->modo = 'editar';
@@ -86,6 +123,7 @@ class CreditosList extends Component
             ->map(function ($cuota) {
                 return [
                     'numero' => $cuota->numero_cuota,
+                    'monto_original' => $cuota->monto_original,
                     'monto' => $cuota->monto,
                     'fecha' => $cuota->fecha_vencimiento,
                     'estado' => $cuota->estado,
@@ -116,33 +154,59 @@ class CreditosList extends Component
         $this->isOpen = false;
     }
 
-    // Nuevo método para abrir el modal de confirmación
+
     public function confirmarEliminar($id)
     {
-        // Se impide la acción si el usuario es administrador
-        if (Auth::user()->rol === 'admin') {
-            return;
-        }
-
         $this->creditoIdAEliminar = $id;
+        $this->mensajeEliminarCredito = ''; // Resetea mensaje previo
         $this->modalConfirmar = true;
     }
 
-    // Nuevo método para ejecutar la eliminación
-    public function eliminarConfirmado()
-    {
-        // Se impide la acción si el usuario es administrador
-        if (Auth::user()->rol === 'admin') {
-            return;
+    // Nuevo método para abrir el modal de confirmación
+   public function eliminarCredito()
+{
+    $credito = Credito::with(['abonos', 'cuotas'])->findOrFail($this->creditoIdAEliminar);
+
+    $cantidadAbonos = $credito->abonos->count();
+    $cantidadCuotas = $credito->cuotas->count();
+    $cuotasPagadas = $credito->cuotas->whereIn('estado', ['pagada', 'parcial'])->count();
+
+    // Mostrar advertencia solo si hay abonos o cuotas
+    if (($cantidadAbonos > 0 || $cantidadCuotas > 0) && !$this->mensajeEliminarCredito) {
+        $mensaje = "⚠️ Este crédito tiene";
+
+        $partes = [];
+        if ($cantidadAbonos > 0) {
+            $partes[] = "$cantidadAbonos abono(s) realizados";
         }
-        
-        $credito = Credito::findOrFail($this->creditoIdAEliminar);
-        $credito->delete();
-        session()->flash('delete', 'Crédito eliminado correctamente.');
-        
-        $this->modalConfirmar = false;
-        $this->creditoIdAEliminar = null;
+        if ($cantidadCuotas > 0) {
+            $partes[] = "$cantidadCuotas cuota(s) generadas";
+        }
+        if ($cuotasPagadas > 0) {
+            $partes[] = "$cuotasPagadas cuota(s) ya pagadas";
+        }
+
+        $mensaje .= ' ' . implode(', ', $partes) . ". Si eliminas este crédito, también se eliminarán estos registros. ¿Deseas continuar?";
+
+        $this->mensajeEliminarCredito = $mensaje;
+        $this->modalConfirmar = true;
+        return;
     }
+
+    // Eliminar abonos y cuotas asociados
+    $credito->abonos()->delete();
+    $credito->cuotas()->delete();
+    $credito->delete();
+
+    session()->flash('delete', 'Crédito y sus registros relacionados eliminados correctamente.');
+
+    $this->modalConfirmar = false;
+    $this->creditoIdAEliminar = null;
+    $this->mensajeEliminarCredito = '';
+}
+
+
+
 
     public function resetForm()
     {
@@ -154,34 +218,34 @@ class CreditosList extends Component
     }
 
     /* Se dispara al teclear (usaremos wire:model.live en la vista) */
-   public function updatedClienteSearch()
-{
-    $term = trim($this->clienteSearch);
+    public function updatedClienteSearch()
+    {
+        $term = trim($this->clienteSearch);
 
-    if ($term === '') {
-        $this->clientesFiltrados = [];
-        return;
+        if ($term === '') {
+            $this->clientesFiltrados = [];
+            return;
+        }
+
+        $user = Auth::user();
+
+        $query = Cliente::query()
+            ->when($user->hasRole('Cobrador'), function ($q) use ($user) {
+                $cartera = Cartera::where('user_id', $user->id)->first();
+                if ($cartera) {
+                    return $q->where('cartera_id', $cartera->id);
+                }
+                return $q->whereRaw('1=0'); // Retorna una consulta vacía si no hay cartera
+            })
+            ->where(function ($q) use ($term) {
+                $q->where('nombres', 'like', "%{$term}%")
+                    ->orWhere('apellidos', 'like', "%{$term}%")
+                    ->orWhere('identificacion', 'like', "%{$term}%")
+                    ->orWhere('telefono', 'like', "%{$term}%");
+            });
+
+        $this->clientesFiltrados = $query->orderBy('nombres')->limit(10)->get();
     }
-
-    $user = Auth::user();
-
-    $query = Cliente::query()
-        ->when($user->hasRole('Cobrador'), function ($q) use ($user) {
-            $cartera = Cartera::where('user_id', $user->id)->first();
-            if ($cartera) {
-                return $q->where('cartera_id', $cartera->id);
-            }
-            return $q->whereRaw('1=0'); // Retorna una consulta vacía si no hay cartera
-        })
-        ->where(function($q) use ($term) {
-            $q->where('nombres', 'like', "%{$term}%")
-                ->orWhere('apellidos', 'like', "%{$term}%")
-                ->orWhere('identificacion', 'like', "%{$term}%")
-                ->orWhere('telefono', 'like', "%{$term}%");
-        });
-
-    $this->clientesFiltrados = $query->orderBy('nombres')->limit(10)->get();
-}
 
 
     public function seleccionarCliente($id)
@@ -189,37 +253,73 @@ class CreditosList extends Component
         $cliente = Cliente::find($id);
         if ($cliente) {
             $this->form->cliente_id = $cliente->id;
-            $this->clienteSearch = $cliente->nombres.' '.$cliente->apellidos;
+            $this->clienteSearch = $cliente->nombres . ' ' . $cliente->apellidos;
             $this->clientesFiltrados = [];
         }
     }
 
-   public function render()
-{
-    // Obtener el usuario autenticado
-    $user = Auth::user();
 
-    $creditos = Credito::query()
-        ->when($user->hasRole('Cobrador'), function ($query) use ($user) {
-            $cartera = Cartera::where('user_id', $user->id)->first();
-            if (!$cartera) {
-                return $query->whereRaw('1=0');
-            }
-            return $query->whereHas('cliente', function ($q) use ($cartera) {
-                $q->where('cartera_id', $cartera->id);
-            });
-        })
-        ->when($this->search, function ($query) {
-            return $query->whereHas('cliente', function ($q) {
-                $q->where('nombres', 'like', "%{$this->search}%")
-                    ->orWhere('apellidos', 'like', "%{$this->search}%");
-            });
-        })
-        ->whereNull('deleted_at')
-        ->with('cliente')
-        ->latest()
-        ->paginate(5);
+    public function downloadPDF()
+    {
+        $user = Auth::user();
 
-    return view('livewire.creditos-list', compact('creditos'));
-}
+        $creditos = Credito::query()
+            ->when($user->hasRole('Cobrador'), function ($query) use ($user) {
+                $cartera = Cartera::where('user_id', $user->id)->first();
+                if (!$cartera) {
+                    return $query->whereRaw('1=0');
+                }
+                return $query->whereHas('cliente', function ($q) use ($cartera) {
+                    $q->where('cartera_id', $cartera->id);
+                });
+            })
+            ->when($this->search, function ($query) {
+                return $query->whereHas('cliente', function ($q) {
+                    $q->where('nombres', 'like', "%{$this->search}%")
+                        ->orWhere('apellidos', 'like', "%{$this->search}%");
+                });
+            })
+            ->with('cliente')
+            ->get();
+
+        $pdf = Pdf::loadView('livewire.creditos-report-pdf', [
+            'creditos' => $creditos,
+            'fecha'    => now()->format('d/m/Y H:i'),
+        ]);
+
+        return response()->streamDownload(
+            fn() => print($pdf->output()),
+            'reporte_creditos_' . now()->format('Ymd_His') . '.pdf'
+        );
+    }
+
+
+    public function render()
+    {
+        // Obtener el usuario autenticado
+        $user = Auth::user();
+
+        $creditos = Credito::query()
+            ->when($user->hasRole('Cobrador'), function ($query) use ($user) {
+                $cartera = Cartera::where('user_id', $user->id)->first();
+                if (!$cartera) {
+                    return $query->whereRaw('1=0');
+                }
+                return $query->whereHas('cliente', function ($q) use ($cartera) {
+                    $q->where('cartera_id', $cartera->id);
+                });
+            })
+            ->when($this->search, function ($query) {
+                return $query->whereHas('cliente', function ($q) {
+                    $q->where('nombres', 'like', "%{$this->search}%")
+                        ->orWhere('apellidos', 'like', "%{$this->search}%");
+                });
+            })
+            ->whereNull('deleted_at')
+            ->with('cliente')
+            ->latest()
+            ->paginate(5);
+
+        return view('livewire.creditos-list', compact('creditos'));
+    }
 }

@@ -1,13 +1,13 @@
 <div class="bg-gray-100 dark:bg-gray-900 min-h-screen p-4 sm:p-6 lg:p-8">
 
-   
+
 
     <div class="max-w-4xl mx-auto space-y-8">
-        
+        <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-6">Gestión de Configuración del Sistema</h2>
         <div class="bg-white dark:bg-gray-800 rounded-2xl shadow-lg p-6">
             <h2 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4 flex items-center gap-2">
                 <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
-                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.942 3.313.842 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.942 1.543-.842 3.313-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.942-3.313-.842-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.942-1.543.842-3.313 2.37-2.37.996.608 2.296.07 2.572-1.065z"/>
+                    <path stroke-linecap="round" stroke-linejoin="round" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.942 3.313.842 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.942 1.543-.842 3.313-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.942-3.313-.842-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.942-1.543.842-3.313 2.37-2.37.996.608 2.296.07 2.572-1.065z" />
                     <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
                 </svg>
                 Configuración Actual
@@ -39,6 +39,7 @@
                         @if($config->permite_multicredito ?? false) Sí @else No @endif
                     </p>
                 </div>
+
             </div>
         </div>
 
@@ -58,13 +59,18 @@
                         <div class="md:col-span-2">
                             <label class="block text-gray-700 dark:text-gray-300 font-medium mb-1">Logo</label>
                             <input type="file" wire:model="logoUpload" class="block w-full text-sm text-gray-600 dark:text-gray-400 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 dark:file:bg-blue-700 dark:file:text-blue-100">
+
                             @error('logoUpload') <span class="text-red-500 text-sm">{{ $message }}</span> @enderror
-                            @if($logoUpload)
-                                <img class="mt-4 h-20 w-auto rounded-lg shadow-md" src="{{ $logoUpload->temporaryUrl() }}" alt="Nuevo Logo">
+
+                            @if($logoTemp)
+                            <!-- Vista previa del logo temporal subido a Imgbb -->
+                            <img class="mt-4 h-20 w-auto rounded-lg shadow-md" src="{{ $logoTemp }}" alt="Nuevo Logo">
                             @elseif($config->logo)
-                                <img class="mt-4 h-20 w-auto rounded-lg shadow-md" src="{{ Storage::url($config->logo) }}" alt="Logo Actual">
+                            <!-- Logo actual desde Imgbb -->
+                            <img class="mt-4 h-20 w-auto rounded-lg shadow-md" src="{{ $config->logo }}" alt="Logo Actual">
                             @endif
                         </div>
+
                         <div>
                             <label class="text-gray-700 dark:text-gray-300 font-medium">Nombre del sistema</label>
                             <input type="text" wire:model="nombre_sistema" class="w-full mt-1 border-gray-300 dark:border-gray-600 rounded-lg px-4 py-2 bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-200 focus:ring-blue-500 focus:border-blue-500 transition-colors duration-200">
@@ -142,11 +148,11 @@
                     </div>
                 </div>
 
-                 @if (session()->has('update'))
-    <div class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 p-4 mb-6 rounded-xl shadow-lg transition-all duration-300 transform scale-100">
-        {{ session('update') }}
-    </div>
-    @endif
+                @if (session()->has('update'))
+                <div class="bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200 p-4 mb-6 rounded-xl shadow-lg transition-all duration-300 transform scale-100" x-data="{ show: true }" x-init="setTimeout(() => show = false, 5000)" x-show="show">
+                    {{ session('update') }}
+                </div>
+                @endif
 
                 <div class="flex justify-end pt-4">
                     <button type="submit" class="bg-blue-600 hover:bg-blue-700 text-white px-8 py-3 rounded-xl shadow-lg transition-all duration-300 font-bold transform hover:scale-105">

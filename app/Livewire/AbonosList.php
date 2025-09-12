@@ -28,6 +28,9 @@ class AbonosList extends Component
     public $proximaCuota = null;
     public $modalConfirmar = false;
     public $abonoAEliminar = null;
+    // Propiedad para controlar si el buscador está abierto en móvil
+     public $buscarAbierto = false;
+
 
 
     // Buscador
@@ -38,6 +41,40 @@ class AbonosList extends Component
 
     // Propiedades para la vista
     public $creditoSeleccionado = null;
+
+    public $openAcciones = []; // control de menús desplegables por abono
+
+    // Nueva propiedad
+public $modalReporte = false;
+
+// Abrir modal reporte
+public function abrirModalReporte()
+{
+    $this->modalReporte = true;
+}
+
+// Cerrar modal reporte
+public function cerrarModalReporte()
+{
+    $this->modalReporte = false;
+}
+
+
+
+public function toggleAcciones($id)
+{
+    // Cerrar todos antes de abrir uno
+    foreach ($this->openAcciones as $key => $estado) {
+        $this->openAcciones[$key] = false;
+    }
+
+    $this->openAcciones[$id] = !($this->openAcciones[$id] ?? false);
+}
+
+public function cerrarAcciones($id)
+{
+    $this->openAcciones[$id] = false;
+}
 
 
 
@@ -201,7 +238,9 @@ public function seleccionarCredito($id)
         $this->creditoSeleccionado = $credito;
 
         // Sugerir saldo total pendiente
-        $this->form->monto_abono = $credito->saldo_pendiente;
+       // $this->form->monto_abono = $credito->saldo_pendiente;
+        $this->form->monto_abono = optional($this->proximaCuota)->monto ?? null;
+
 
         // Guardar cuotas asociadas
         $this->cuotasCredito = $credito->cuotas()
@@ -210,6 +249,7 @@ public function seleccionarCredito($id)
             ->map(function ($cuota) {
                 return [
                     'numero' => $cuota->numero_cuota,
+                    'monto_original' => $cuota->monto_original,
                     'monto' => $cuota->monto,
                     'fecha' => $cuota->fecha_vencimiento,
                     'estado' => $cuota->estado,

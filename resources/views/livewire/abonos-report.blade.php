@@ -1,8 +1,6 @@
-<div
-    class="p-6 lg:p-12 bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
+<div class="p-6 lg:p-12 bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen text-gray-900 dark:text-gray-100">
 
-    <div
-        class="p-4 bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen text-gray-900 dark:text-gray-100 sm:p-6 lg:p-12">
+    <div class="p-4 bg-gradient-to-r from-green-50 via-blue-50 to-purple-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 min-h-screen text-gray-900 dark:text-gray-100 sm:p-6 lg:p-12">
 
         <div class="mb-6">
             <h1 class="text-2xl font-bold text-gray-800 dark:text-gray-100 mb-4">
@@ -12,34 +10,33 @@
 
             <div x-data="{ openSearch: false, openOptions: false }" class="lg:hidden mb-4">
                 <div class="flex items-center space-x-2 mb-4">
-                    <button @click="openSearch = !openSearch"
-                        class="flex-shrink-0 p-2 rounded-full text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-700 shadow-sm">
+                    <button @click="openSearch = !openSearch" class="flex-shrink-0 p-2 rounded-full text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-700 shadow-sm">
                         <i class="fas fa-search"></i>
                     </button>
                     <div x-show="openSearch" x-collapse.duration.300ms class="relative flex-1">
-                        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar cliente..."
-                            class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm pr-10">
+                        <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar cliente..." class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm pr-10">
                         @if ($search)
-                        <button wire:click="resetSearch"
-                            class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+                        <button wire:click="resetSearch" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                             <i class="fas fa-times-circle"></i>
                         </button>
                         @endif
                     </div>
 
-                    <button @click="openOptions = !openOptions"
-                        class="flex-shrink-0 p-2 rounded-lg text-sm bg-blue-500 text-white font-semibold shadow-sm flex items-center gap-2">
+                    <button @click="openOptions = !openOptions" class="flex-shrink-0 p-2 rounded-lg text-sm bg-blue-500 text-white font-semibold shadow-sm flex items-center gap-2">
                         <i class="fas fa-filter"></i>
                         <span>Filtros</span>
                     </button>
+
+
+
+
                 </div>
 
                 <div x-show="openOptions" x-collapse.duration.300ms>
                     <div class="flex flex-wrap gap-3 mb-4">
                         <div class="flex-1 min-w-[120px]">
                             <label for="filtroDia" class="sr-only">Filtrar por pago</label>
-                            <select id="filtroDia" wire:model.live="filtroDia"
-                                class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
+                            <select id="filtroDia" wire:model.live="filtroDia" class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
                                 <option value="">-- Pagos --</option>
                                 <option value="abonaron">Pagaron</option>
                                 <option value="no_abonaron">No Pagaron</option>
@@ -47,8 +44,7 @@
                         </div>
                         <div class="flex-1 min-w-[120px]">
                             <label for="carteraId" class="sr-only">Filtrar por cartera</label>
-                            <select id="carteraId" wire:model.live="carteraId"
-                                class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
+                            <select id="carteraId" wire:model.live="carteraId" class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
                                 <option value="">-- carteras --</option>
                                 @foreach($carteras as $cartera)
                                 <option value="{{ $cartera->id }}">{{ $cartera->nombre }}</option>
@@ -57,8 +53,7 @@
                         </div>
                         <div class="flex-1 min-w-[120px]">
                             <label for="filtroEstadoCredito" class="sr-only">Filtrar por estado</label>
-                            <select id="filtroEstadoCredito" wire:model.live="filtroEstadoCredito"
-                                class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
+                            <select id="filtroEstadoCredito" wire:model.live="filtroEstadoCredito" class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
                                 <option value="">-- Estados --</option>
                                 <option value="activo">Activo</option>
                                 <option value="moroso">Moroso</option>
@@ -100,8 +95,7 @@
             <div class="hidden lg:flex flex-wrap gap-3 mb-4">
                 <div class="flex-1 min-w-[120px]">
                     <label for="filtroDia" class="sr-only">Filtrar por pago</label>
-                    <select id="filtroDia" wire:model.live="filtroDia"
-                        class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
+                    <select id="filtroDia" wire:model.live="filtroDia" class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
                         <option value="">-- Pagos --</option>
                         <option value="abonaron">Pagaron</option>
                         <option value="no_abonaron">No Pagaron</option>
@@ -109,8 +103,7 @@
                 </div>
                 <div class="flex-1 min-w-[120px]">
                     <label for="carteraId" class="sr-only">Filtrar por cartera</label>
-                    <select id="carteraId" wire:model.live="carteraId"
-                        class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
+                    <select id="carteraId" wire:model.live="carteraId" class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
                         <option value="">-- carteras --</option>
                         @foreach($carteras as $cartera)
                         <option value="{{ $cartera->id }}">{{ $cartera->nombre }}</option>
@@ -119,22 +112,25 @@
                 </div>
                 <div class="flex-1 min-w-[120px]">
                     <label for="filtroEstadoCredito" class="sr-only">Filtrar por estado</label>
-                    <select id="filtroEstadoCredito" wire:model.live="filtroEstadoCredito"
-                        class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
+                    <select id="filtroEstadoCredito" wire:model.live="filtroEstadoCredito" class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm">
                         <option value="">-- Estados --</option>
                         <option value="activo">Activo</option>
                         <option value="moroso">Moroso</option>
                     </select>
                 </div>
                 <div class="relative flex-1 min-w-[200px]">
-                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar cliente..."
-                        class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm pr-10">
+                    <input type="text" wire:model.live.debounce.300ms="search" placeholder="Buscar cliente..." class="w-full border rounded-lg p-2 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 shadow-sm pr-10">
                     @if ($search)
-                    <button wire:click="resetSearch"
-                        class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
+                    <button wire:click="resetSearch" class="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300">
                         <i class="fas fa-times-circle"></i>
                     </button>
                     @endif
+                </div>
+
+                <div class="mb-4 flex justify-end">
+                    <button wire:click="downloadPDF" class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700">
+                        <i class="fas fa-file-pdf mr-2"></i> Descargar PDF
+                    </button>
                 </div>
             </div>
 
@@ -168,8 +164,7 @@
         <div class="space-y-4 lg:hidden">
             @forelse($this->clientesFiltrados['clientes'] as $cliente)
             @foreach($cliente->detalle_abonos as $abono)
-            <div x-data="{ open: false }"
-                class="rounded-xl shadow-md overflow-hidden transition-all duration-300 bg-white dark:bg-gray-700
+            <div x-data="{ open: false }" class="rounded-xl shadow-md overflow-hidden transition-all duration-300 bg-white dark:bg-gray-700
                 {{ $abono->estado === 'Pagó Hoy' ? 'border-l-4 border-green-500' : 'border-l-4 border-gray-400 dark:border-gray-600' }}">
 
                 <div class="p-4 flex justify-between items-center cursor-pointer" @click="open = !open">
@@ -180,15 +175,13 @@
                         {{ $abono->estado === 'Pagó Hoy' ? 'bg-green-500 text-white' : 'bg-red-500 text-white' }}">
                                 {{ $abono->estado }}
                             </span>
-                            <span
-                                class="px-2 py-1 rounded-full text-xs font-semibold
+                            <span class="px-2 py-1 rounded-full text-xs font-semibold
                         {{ $abono->estado_credito === 'activo' ? 'bg-blue-500 text-white' : 'bg-red-500 text-white' }}">
                                 {{ ucfirst($abono->estado_credito) }}
                             </span>
                         </div>
                     </div>
-                    <i class="fas fa-chevron-down transform transition-transform duration-300 text-gray-400"
-                        :class="{ 'rotate-180': open }"></i>
+                    <i class="fas fa-chevron-down transform transition-transform duration-300 text-gray-400" :class="{ 'rotate-180': open }"></i>
                 </div>
 
                 <div x-show="open" x-collapse.duration.400ms class="p-4 border-t border-gray-200 dark:border-gray-600">

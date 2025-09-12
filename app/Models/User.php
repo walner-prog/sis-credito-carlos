@@ -35,7 +35,8 @@ class User extends Authenticatable
         'email',
         'password',
         'profile_photo_path',
-        'deleted_at'
+        'deleted_at',
+        'delete_profile_photo_path',
 
     ];
 
@@ -85,9 +86,10 @@ class User extends Authenticatable
 public function getProfilePhotoUrlAttribute(): string
 {
     return $this->profile_photo_path
-        ? asset('storage/' . $this->profile_photo_path)  // La URL completa de la imagen
-        : 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';  // Avatar por defecto si no tiene foto
+        ? $this->profile_photo_path  // Ya es URL completa de Imgbb
+        : 'https://ui-avatars.com/api/?name=' . urlencode($this->name) . '&color=7F9CF5&background=EBF4FF';
 }
+
 
     
  

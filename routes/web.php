@@ -14,15 +14,49 @@ use App\Http\Controllers\ConfiguracionController;
  
 
 use App\Livewire\CreatePost;
- 
- 
+use Illuminate\Support\Facades\Artisan;
+
 Route::get('/posts/create', CreatePost::class);
- 
+
+Route::get('/generar_enlace_simbolico', function() {
+    Artisan::call('storage:link');
+    return '¡Enlace simbólico creado!';
+});
 
 
  
+ 
 
-// Página de login (solo invitados pueden verla)
+Route::get('/artisan/{command}', function ($command) {
+    // ⚠️ Seguridad: key secreta
+    if (request('key') !== 'MI_SECRETO_SUPER_SECRETA') {
+        abort(403, 'No autorizado');
+    }
+
+    // Lista de comandos permitidos
+    $permitidos = [
+        'cache:clear',
+        'config:clear',
+        'route:clear',
+        'view:clear',
+        'storage:link',
+        'migrate:refresh --seed', // agregamos el migrate:refresh --seed
+    ];
+
+    if (!in_array($command, $permitidos)) {
+        return "❌ Comando no permitido.";
+    }
+
+    Artisan::call($command);
+
+    return "✅ Comando [$command] ejecutado correctamente.";
+});
+
+
+
+
+
+// Página de login
 Route::get('/login', function () {
     return view('welcome'); // tu vista de login
 })->middleware('guest')->name('login');
@@ -41,6 +75,7 @@ Route::get('/dashboard', function () {
 Route::middleware('auth')->group(function () {
     // Clientes
     Route::get('/clientes', [ClienteController::class, 'index'])->name('clientes');
+   
 
     // Carteras
     Route::get('/carteras', [CarteraController::class, 'index'])->name('carteras');
@@ -50,15 +85,15 @@ Route::middleware('auth')->group(function () {
 
     // Abonos
     Route::get('/abonos', [AbonoController::class, 'index'])->name('abonos');
-    Route::get('/abonos/report', [AbonoController::class, 'report'])->name('abonos.report');
-    Route::get('/abonos/crear', [AbonoController::class, 'crear'])->name('abonos.crear');
+   
+ 
 
     // Solo administradores
     Route::middleware('role:Administrador')->group(function () {
         Route::get('/usuarios', [UsuarioController::class, 'index'])->name('usuarios');
         Route::get('/roles', [RolController::class, 'index'])->name('roles');
         Route::get('/configuraciones', [ConfiguracionController::class, 'index'])->name('configuraciones.index');
-
+        Route::get('/abonos/report', [AbonoController::class, 'report'])->name('abonos.report');
 
         // Perfil
         Route::get('/profile', [ProfileController::class, 'edit'])->name('profile.edit');

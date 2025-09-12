@@ -2,7 +2,7 @@
     <div class="flex flex-col items-center justify-center min-h-[80vh] bg-gray-100 dark:bg-gray-900 px-4">
         <!-- Logo -->
         <div class="mb-4">
-            <img src="{{ asset('logo.png') }}" alt="Logo" class="h-16 w-auto">
+            <livewire:navigation-logo size="h-32 w-auto" />
         </div>
 
         <!-- Login Card -->

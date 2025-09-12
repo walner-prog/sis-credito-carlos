@@ -17,7 +17,7 @@ class RolesSeeder extends Seeder
 
         // Crear usuario administrador si no existe
         $user = User::firstOrCreate(
-            ['email' => 'ca140611@gmail.com'],
+            ['email' => null],
             [
                 'name'     => 'Carlos Q.',
                 'username' => 'carlos', // ← Nuevo campo username

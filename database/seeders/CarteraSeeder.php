@@ -22,7 +22,7 @@ class CarteraSeeder extends Seeder
 
         Cartera::create([
             'nombre' => 'Cartera 2',
-            'user_id' => 1, // ID del usuario asignado
+            'user_id' => 2, // ID del usuario asignado
             'estado' => 'activa', // Estado de la cartera
         ]);
     }

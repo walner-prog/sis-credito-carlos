@@ -12,8 +12,8 @@ return new class extends Migration
             $table->string('nombres', 255);
             $table->string('apellidos', 255);
             $table->string('identificacion', 20)->unique();
-            $table->string('telefono', 20);
-            $table->text('direccion');
+            $table->string('telefono', 20)->nullable();
+            $table->text('direccion')->nullable();
             $table->string('km_referencia', 50)->nullable()->comment('Ejemplo: KM 5 Carretera Vieja a León');
             $table->foreignId('cartera_id')->nullable()->constrained('carteras')->onDelete('set null'); // <-- aquí
             $table->enum('estado', ['activo', 'inactivo'])->default('activo');
