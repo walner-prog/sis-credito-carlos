@@ -65,5 +65,9 @@ php artisan migrate --seed
 
 php artisan serve
 
+Probar sistema  : carlos - 12345678
+
+https://softnica.info/
+
 
 der the [MIT license](https://opensource.org/licenses/MIT).
